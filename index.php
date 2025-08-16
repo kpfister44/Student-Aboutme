@@ -328,22 +328,40 @@ $search = $_GET['search'] ?? '';
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
+        .auth-card {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
         .form-group {
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
         }
         
         .form-group label {
             display: block;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
             font-weight: 500;
+            color: #666;
+            font-size: 0.95rem;
         }
         
         .form-group input, .form-group textarea, .form-group select {
             width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 1rem;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
             font-size: 1rem;
+            background-color: #f8f9fa;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+        
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none;
+            border-color: #007bff;
+            background-color: white;
         }
         
         .form-group textarea {
@@ -354,14 +372,16 @@ $search = $_GET['search'] ?? '';
         .btn {
             background-color: #007bff;
             color: white;
-            padding: 0.75rem 1.5rem;
+            padding: 1rem 1.5rem;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 1rem;
+            font-weight: 500;
             text-decoration: none;
             display: inline-block;
             transition: background-color 0.2s;
+            width: 100%;
         }
         
         .btn:hover {
@@ -467,6 +487,36 @@ $search = $_GET['search'] ?? '';
             color: #007bff;
         }
         
+        .auth-toggle {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: #666;
+            font-size: 0.95rem;
+        }
+        
+        .auth-toggle button {
+            background: none;
+            border: none;
+            color: #007bff;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.95rem;
+            margin-left: 0.25rem;
+        }
+        
+        .auth-toggle button:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+        
+        .register-fields {
+            display: none;
+        }
+        
+        .register-fields.show {
+            display: block;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -528,9 +578,9 @@ $search = $_GET['search'] ?? '';
                     exit;
                 }
                 ?>
-                <div class="card">
-                    <h1>Welcome to StudentIntro</h1>
-                    <p>Login with your email and password, or register by providing your name as well.</p>
+                <div class="card auth-card">
+                    <h1 id="auth-title" style="font-size: 2rem; font-weight: 600; margin-bottom: 0.5rem; color: #333;">Login</h1>
+                    <p id="auth-description" style="color: #666; margin-bottom: 2rem; font-size: 1rem;">Enter your email and password to login</p>
                     
                     <form method="post">
                         <input type="hidden" name="action" value="auth">
@@ -545,21 +595,63 @@ $search = $_GET['search'] ?? '';
                             <input type="password" id="password" name="password" required>
                         </div>
                         
-                        <div class="form-group">
-                            <label for="name">Name (required for registration):</label>
-                            <input type="text" id="name" name="name" placeholder="Leave blank to login only">
+                        <div class="register-fields" id="register-fields">
+                            <div class="form-group">
+                                <label for="name">Full Name:</label>
+                                <input type="text" id="name" name="name">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="role">I am a:</label>
+                                <select id="role" name="role">
+                                    <option value="student">Student</option>
+                                    <option value="teacher">Teacher</option>
+                                </select>
+                            </div>
                         </div>
                         
-                        <div class="form-group">
-                            <label for="role">Role (for registration):</label>
-                            <select id="role" name="role">
-                                <option value="student">Student</option>
-                                <option value="teacher">Teacher</option>
-                            </select>
-                        </div>
-                        
-                        <button type="submit" class="btn">Login / Register</button>
+                        <button type="submit" class="btn" id="submit-btn">Login</button>
                     </form>
+                    
+                    <div class="auth-toggle">
+                        <span id="toggle-text">Don't have a student account?</span>
+                        <button type="button" id="toggle-btn" onclick="toggleAuthMode()">Register here</button>
+                    </div>
+                    
+                    <script>
+                        let isRegisterMode = false;
+                        
+                        function toggleAuthMode() {
+                            isRegisterMode = !isRegisterMode;
+                            
+                            const title = document.getElementById('auth-title');
+                            const description = document.getElementById('auth-description');
+                            const toggleText = document.getElementById('toggle-text');
+                            const toggleBtn = document.getElementById('toggle-btn');
+                            const registerFields = document.getElementById('register-fields');
+                            const submitBtn = document.getElementById('submit-btn');
+                            const nameField = document.getElementById('name');
+                            
+                            if (isRegisterMode) {
+                                title.textContent = 'Register';
+                                description.textContent = 'Create your account to get started';
+                                toggleText.textContent = 'Already have an account?';
+                                toggleBtn.textContent = 'Login here';
+                                registerFields.classList.add('show');
+                                submitBtn.textContent = 'Register';
+                                nameField.required = true;
+                            } else {
+                                title.textContent = 'Login';
+                                description.textContent = 'to start learning';
+                                toggleText.textContent = "Don't have an account?";
+                                toggleBtn.textContent = 'Register here';
+                                registerFields.classList.remove('show');
+                                submitBtn.textContent = 'Login';
+                                nameField.required = false;
+                                nameField.value = '';
+                            }
+                        }
+                    </script>
                 </div>
                 <?php
                 break;
