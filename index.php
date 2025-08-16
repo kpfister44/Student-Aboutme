@@ -42,12 +42,11 @@ function initDatabase() {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
         course_id INTEGER NOT NULL,
-        preferred_name TEXT,
-        pronouns TEXT,
-        major TEXT,
-        goals TEXT,
+        name_goes_by TEXT,
+        after_school_activities TEXT,
         fun_fact TEXT,
-        learning_needs TEXT,
+        interest_level INTEGER,
+        additional_info TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users (id),
         FOREIGN KEY (course_id) REFERENCES courses (id),
@@ -208,12 +207,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'save_profile':
             requireLogin();
             $courseId = $_POST['course_id'];
-            $preferredName = trim($_POST['preferred_name']);
-            $pronouns = trim($_POST['pronouns']);
-            $major = trim($_POST['major']);
-            $goals = trim($_POST['goals']);
+            $nameGoesBy = trim($_POST['name_goes_by']);
+            $afterSchoolActivities = trim($_POST['after_school_activities']);
             $funFact = trim($_POST['fun_fact']);
-            $learningNeeds = trim($_POST['learning_needs']);
+            $interestLevel = $_POST['interest_level'] ? (int)$_POST['interest_level'] : null;
+            $additionalInfo = trim($_POST['additional_info']);
             
             // Check if profile exists
             $stmt = $db->prepare("SELECT id FROM student_profiles WHERE user_id = ? AND course_id = ?");
@@ -224,17 +222,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Update existing profile
                 $stmt = $db->prepare("
                     UPDATE student_profiles 
-                    SET preferred_name = ?, pronouns = ?, major = ?, goals = ?, fun_fact = ?, learning_needs = ?, updated_at = CURRENT_TIMESTAMP
+                    SET name_goes_by = ?, after_school_activities = ?, fun_fact = ?, interest_level = ?, additional_info = ?, updated_at = CURRENT_TIMESTAMP
                     WHERE user_id = ? AND course_id = ?
                 ");
-                $stmt->execute([$preferredName, $pronouns, $major, $goals, $funFact, $learningNeeds, $_SESSION['user_id'], $courseId]);
+                $stmt->execute([$nameGoesBy, $afterSchoolActivities, $funFact, $interestLevel, $additionalInfo, $_SESSION['user_id'], $courseId]);
             } else {
                 // Create new profile
                 $stmt = $db->prepare("
-                    INSERT INTO student_profiles (user_id, course_id, preferred_name, pronouns, major, goals, fun_fact, learning_needs)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO student_profiles (user_id, course_id, name_goes_by, after_school_activities, fun_fact, interest_level, additional_info)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                 ");
-                $stmt->execute([$_SESSION['user_id'], $courseId, $preferredName, $pronouns, $major, $goals, $funFact, $learningNeeds]);
+                $stmt->execute([$_SESSION['user_id'], $courseId, $nameGoesBy, $afterSchoolActivities, $funFact, $interestLevel, $additionalInfo]);
             }
             
             $success = "Profile saved successfully!";
@@ -463,13 +461,25 @@ $search = $_GET['search'] ?? '';
             margin-bottom: 2rem;
         }
         
+        .search-form {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            max-width: 600px;
+        }
+        
         .search-box input {
-            width: 100%;
-            max-width: 400px;
+            flex: 1;
             padding: 0.75rem;
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 1rem;
+        }
+        
+        .search-box .btn {
+            width: auto;
+            padding: 0.75rem 1.5rem;
+            flex-shrink: 0;
         }
         
         .course-info {
@@ -538,6 +548,23 @@ $search = $_GET['search'] ?? '';
             .grid-2, .grid-3 {
                 grid-template-columns: 1fr;
             }
+            
+            .search-form {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-box .btn {
+                width: 100%;
+            }
+            
+            .button-group {
+                flex-direction: column !important;
+            }
+            
+            .button-group .btn {
+                width: 100% !important;
+            }
         }
     </style>
 </head>
@@ -548,9 +575,6 @@ $search = $_GET['search'] ?? '';
             <?php if (isLoggedIn()): ?>
             <nav class="nav">
                 <a href="?page=dashboard" <?= $page === 'dashboard' ? 'class="active"' : '' ?>>Dashboard</a>
-                <?php if ($_SESSION['user_role'] === 'teacher'): ?>
-                <a href="?page=courses" <?= $page === 'courses' ? 'class="active"' : '' ?>>My Courses</a>
-                <?php endif; ?>
                 <span>Hello, <?= htmlspecialchars($_SESSION['user_name']) ?></span>
                 <form method="post" style="display: inline;">
                     <input type="hidden" name="action" value="logout">
@@ -686,7 +710,7 @@ $search = $_GET['search'] ?? '';
                                     <div style="margin-bottom: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
                                         <h3><?= htmlspecialchars($course['name']) ?></h3>
                                         <p>Teacher: <?= htmlspecialchars($course['teacher_name']) ?></p>
-                                        <a href="?page=profile&course_id=<?= $course['id'] ?>" class="btn">Edit Profile</a>
+                                        <a href="?page=profile&course_id=<?= $course['id'] ?>" class="btn" style="width: auto; display: inline-block; margin-top: 0.75rem;">Edit Profile</a>
                                     </div>
                                 <?php endforeach; ?>
                             <?php endif; ?>
@@ -721,7 +745,7 @@ $search = $_GET['search'] ?? '';
                                     <div style="margin-bottom: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
                                         <h3><?= htmlspecialchars($course['name']) ?></h3>
                                         <p>Join Code: <span class="join-code"><?= htmlspecialchars($course['join_code']) ?></span></p>
-                                        <a href="?page=view_profiles&course_id=<?= $course['id'] ?>" class="btn">View Student Profiles</a>
+                                        <a href="?page=view_profiles&course_id=<?= $course['id'] ?>" class="btn" style="width: auto; display: inline-block; margin-top: 0.75rem;">View Student Profiles</a>
                                     </div>
                                 <?php endforeach; ?>
                             <?php endif; ?>
@@ -754,49 +778,48 @@ $search = $_GET['search'] ?? '';
                 $stmt->execute([$_SESSION['user_id'], $courseId]);
                 $profile = $stmt->fetch(PDO::FETCH_ASSOC);
                 ?>
-                <h1>About Me Profile - <?= htmlspecialchars($course['name']) ?></h1>
+                <h1 style="margin-bottom: 2rem; text-align: center;">About Me Profile - <?= htmlspecialchars($course['name']) ?></h1>
                 
-                <div class="card">
+                <div class="card auth-card">
                     <form method="post">
                         <input type="hidden" name="action" value="save_profile">
                         <input type="hidden" name="course_id" value="<?= $courseId ?>">
                         
                         <div class="form-group">
-                            <label for="preferred_name">Preferred Name:</label>
-                            <input type="text" id="preferred_name" name="preferred_name" 
-                                   value="<?= htmlspecialchars($profile['preferred_name'] ?? '') ?>">
+                            <label for="name_goes_by">Name you go by:</label>
+                            <input type="text" id="name_goes_by" name="name_goes_by" 
+                                   value="<?= htmlspecialchars($profile['name_goes_by'] ?? '') ?>">
                         </div>
                         
                         <div class="form-group">
-                            <label for="pronouns">Pronouns:</label>
-                            <input type="text" id="pronouns" name="pronouns" 
-                                   value="<?= htmlspecialchars($profile['pronouns'] ?? '') ?>" 
-                                   placeholder="e.g., she/her, he/him, they/them">
+                            <label for="after_school_activities">After school activities:</label>
+                            <textarea id="after_school_activities" name="after_school_activities"><?= htmlspecialchars($profile['after_school_activities'] ?? '') ?></textarea>
                         </div>
                         
                         <div class="form-group">
-                            <label for="major">Major or Area of Study:</label>
-                            <input type="text" id="major" name="major" 
-                                   value="<?= htmlspecialchars($profile['major'] ?? '') ?>">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="goals">Academic or Career Goals:</label>
-                            <textarea id="goals" name="goals"><?= htmlspecialchars($profile['goals'] ?? '') ?></textarea>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="fun_fact">One Fun Fact About Yourself:</label>
+                            <label for="fun_fact">Fun fact about yourself:</label>
                             <textarea id="fun_fact" name="fun_fact"><?= htmlspecialchars($profile['fun_fact'] ?? '') ?></textarea>
                         </div>
                         
                         <div class="form-group">
-                            <label for="learning_needs">Learning Needs, Accommodations, or Preferences:</label>
-                            <textarea id="learning_needs" name="learning_needs"><?= htmlspecialchars($profile['learning_needs'] ?? '') ?></textarea>
+                            <label for="interest_level">Interest level in this subject (1-10 scale):</label>
+                            <select id="interest_level" name="interest_level">
+                                <option value="">Select level...</option>
+                                <?php for ($i = 1; $i <= 10; $i++): ?>
+                                    <option value="<?= $i ?>" <?= ($profile['interest_level'] ?? '') == $i ? 'selected' : '' ?>><?= $i ?></option>
+                                <?php endfor; ?>
+                            </select>
                         </div>
                         
-                        <button type="submit" class="btn">Save Profile</button>
-                        <a href="?page=dashboard" class="btn btn-secondary">Back to Dashboard</a>
+                        <div class="form-group">
+                            <label for="additional_info">Any additional information you would like me to know about you:</label>
+                            <textarea id="additional_info" name="additional_info"><?= htmlspecialchars($profile['additional_info'] ?? '') ?></textarea>
+                        </div>
+                        
+                        <div class="button-group" style="display: flex; gap: 1rem; margin-top: 1rem;">
+                            <button type="submit" class="btn" style="width: auto; flex: 1;">Save Profile</button>
+                            <a href="?page=dashboard" class="btn btn-secondary" style="width: auto; flex: 1; text-align: center;">Back to Dashboard</a>
+                        </div>
                     </form>
                 </div>
                 <?php
@@ -829,22 +852,22 @@ $search = $_GET['search'] ?? '';
                     WHERE sp.course_id = ? AND (
                         u.name LIKE ? OR 
                         u.email LIKE ? OR 
-                        sp.preferred_name LIKE ? OR 
-                        sp.major LIKE ?
+                        sp.name_goes_by LIKE ? OR 
+                        sp.after_school_activities LIKE ?
                     )
                     ORDER BY u.name
                 ");
                 $stmt->execute([$courseId, $searchQuery, $searchQuery, $searchQuery, $searchQuery]);
                 $profiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 ?>
-                <h1>Student Profiles - <?= htmlspecialchars($course['name']) ?></h1>
+                <h1 style="margin-bottom: 2rem;">Student Profiles - <?= htmlspecialchars($course['name']) ?></h1>
                 
                 <div class="search-box">
-                    <form method="get">
+                    <form method="get" class="search-form">
                         <input type="hidden" name="page" value="view_profiles">
                         <input type="hidden" name="course_id" value="<?= $courseId ?>">
                         <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" 
-                               placeholder="Search by name, email, preferred name, or major...">
+                               placeholder="Search by name, email, name they go by, or activities...">
                         <button type="submit" class="btn">Search</button>
                         <?php if ($search): ?>
                             <a href="?page=view_profiles&course_id=<?= $courseId ?>" class="btn btn-secondary">Clear</a>
@@ -863,31 +886,24 @@ $search = $_GET['search'] ?? '';
                                 <h3><?= htmlspecialchars($profile['name']) ?></h3>
                                 <p style="color: #666; margin-bottom: 1rem;"><?= htmlspecialchars($profile['email']) ?></p>
                                 
-                                <?php if ($profile['preferred_name']): ?>
+                                <?php if ($profile['name_goes_by']): ?>
                                     <div class="profile-field">
-                                        <strong>Preferred Name:</strong>
-                                        <?= htmlspecialchars($profile['preferred_name']) ?>
+                                        <strong>Goes by:</strong>
+                                        <?= htmlspecialchars($profile['name_goes_by']) ?>
                                     </div>
                                 <?php endif; ?>
                                 
-                                <?php if ($profile['pronouns']): ?>
+                                <?php if ($profile['interest_level']): ?>
                                     <div class="profile-field">
-                                        <strong>Pronouns:</strong>
-                                        <?= htmlspecialchars($profile['pronouns']) ?>
+                                        <strong>Interest Level:</strong>
+                                        <?= htmlspecialchars($profile['interest_level']) ?>/10
                                     </div>
                                 <?php endif; ?>
                                 
-                                <?php if ($profile['major']): ?>
+                                <?php if ($profile['after_school_activities']): ?>
                                     <div class="profile-field">
-                                        <strong>Major:</strong>
-                                        <?= htmlspecialchars($profile['major']) ?>
-                                    </div>
-                                <?php endif; ?>
-                                
-                                <?php if ($profile['goals']): ?>
-                                    <div class="profile-field">
-                                        <strong>Goals:</strong>
-                                        <?= htmlspecialchars($profile['goals']) ?>
+                                        <strong>After School Activities:</strong>
+                                        <?= htmlspecialchars($profile['after_school_activities']) ?>
                                     </div>
                                 <?php endif; ?>
                                 
@@ -898,10 +914,10 @@ $search = $_GET['search'] ?? '';
                                     </div>
                                 <?php endif; ?>
                                 
-                                <?php if ($profile['learning_needs']): ?>
+                                <?php if ($profile['additional_info']): ?>
                                     <div class="profile-field">
-                                        <strong>Learning Needs:</strong>
-                                        <?= htmlspecialchars($profile['learning_needs']) ?>
+                                        <strong>Additional Info:</strong>
+                                        <?= htmlspecialchars($profile['additional_info']) ?>
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -910,7 +926,7 @@ $search = $_GET['search'] ?? '';
                 <?php endif; ?>
                 
                 <div style="margin-top: 2rem;">
-                    <a href="?page=dashboard" class="btn btn-secondary">Back to Dashboard</a>
+                    <a href="?page=dashboard" class="btn btn-secondary" style="width: auto; display: inline-block;">Back to Dashboard</a>
                 </div>
                 <?php
                 break;
